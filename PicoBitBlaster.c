@@ -18,21 +18,16 @@
 
 int main()
 {
+    bool led_state = 1;
     stdio_init_all();
-
-    // Initialize the bootsel button
-    // The bootsel button is GPIO 21 on Pico (with internal pull-up enabled)
-    gpio_init(21);
-    gpio_set_dir(21, GPIO_IN);
-    gpio_pull_up(21);
 
     gpio_init(PICO_DEFAULT_LED_PIN);
     gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
-    gpio_put(PICO_DEFAULT_LED_PIN, 1); // Turn on the onboard LED
-    sleep_ms(500);
-    gpio_put(PICO_DEFAULT_LED_PIN, 0); // Turn on the onboard LED
-    sleep_ms(500);
-    gpio_put(PICO_DEFAULT_LED_PIN, 1); // Turn on the onboard LED
+    gpio_put(PICO_DEFAULT_LED_PIN, 1); // toggle LED
+    sleep_ms(200);
+    gpio_put(PICO_DEFAULT_LED_PIN, 0); // toggle LED
+    sleep_ms(200);
+    gpio_put(PICO_DEFAULT_LED_PIN,1); // toggle LED
 
     gpio_init(TDO);
     gpio_set_dir(TDO, GPIO_IN);
@@ -60,18 +55,18 @@ int main()
     gpio_put(SCK_O, 0);
     gpio_put(MOSI_O, 0);
 
-    sleep_ms(10000);
-    printf("Pico Ready\n");
-
-    char c = 0;
+    int c = 0;
     char r = 0;
 
     while (true) {
-        c = stdio_getchar();
-        
-        if(c >> 3 == '0' >> 3) { // '0' to '7'
-            c = (c & 0x07); //only keep lower 3 bits
+        c = stdio_getchar_timeout_us(500000);
+        led_state = !led_state;
+        gpio_put(PICO_DEFAULT_LED_PIN,led_state); // toggle LED
+
+        if(c == PICO_ERROR_TIMEOUT){
+            continue; //timeout, loop again
             
+        }else if(c >> 3 == '0' >> 3) { // '0' to '7'
             gpio_put(TDI, c & 1);
             gpio_put(TMS, c & 2);  
             r = (gpio_get(TDO)) ? '1' : '0'; //read TDO
